@@ -129,7 +129,7 @@ LPD8806RGBW_DBL::LPD8806RGBW_DBL(uint16_t n, uint8_t dpin, uint8_t cpin) {
 // command.  If using this constructor, MUST follow up with updateLength()
 // and updatePins() to establish the strip length and output pins!
 LPD8806RGBW_DBL::LPD8806RGBW_DBL(void) {
-  numLEDs = numBytes = 0;
+  numLEDs = latchBytes = 0;
   pixels  = NULL;
   begun   = false;
   updatePins(); // Must assume hardware SPI until pins are set
@@ -203,7 +203,7 @@ void LPD8806RGBW_DBL::startSPI(void) {
 #endif
 
   // Issue initial latch/reset to strip:
-  for(uint16_t i=((numLEDs * 2 +31)/32); i>0; i--) spi_out(0);
+  for(uint16_t i=((numLEDs * 2 * 2 +31)/32); i>0; i--) spi_out(0);
 }
 
 // Enable software SPI pins and issue initial latch:
@@ -212,13 +212,13 @@ void LPD8806RGBW_DBL::startBitbang() {
   pinMode(clkpin , OUTPUT);
 #ifdef __AVR__
   *dataport &= ~datapinmask; // Data is held low throughout (latch = 0)
-  for(uint16_t i=((numLEDs * 2 +31)/32)*8; i>0; i--) {
+  for(uint16_t i=((numLEDs * 2 * 2 +31)/32)*8; i>0; i--) {
     *clkport |=  clkpinmask;
     *clkport &= ~clkpinmask;
   }
 #else
   digitalWrite(datapin, LOW);
-  for(uint16_t i=((numLEDs * 2 +31)/32)*8; i>0; i--) {
+  for(uint16_t i=((numLEDs * 2 * 2 +31)/32)*8; i>0; i--) {
     digitalWrite(clkpin, HIGH);
     digitalWrite(clkpin, LOW);
   }
@@ -227,18 +227,16 @@ void LPD8806RGBW_DBL::startBitbang() {
 
 // Change strip length (see notes with empty constructor, above):
 void LPD8806RGBW_DBL::updateLength(uint16_t n) {
-  uint8_t  latchBytes;
+  uint16_t  latchBytes;
   uint16_t dataBytes;
 
-  numLEDs = numBytes = 0;
+  numLEDs = 0;
   if(pixels) free(pixels); // Free existing data (if any)
 
   dataBytes  = n * 3;
-  latchBytes = (n * 2 + 31) / 32;
+  latchBytes = (n * 2 * 2 + 31) / 32;
   if((pixels = (uint8_t *)malloc(dataBytes))) { // Alloc new data
     numLEDs  = n;
-    numBytes = dataBytes;
-	numLatchBytes = latchBytes;
     memset( pixels           , 0x80, dataBytes);  // Init to RGB 'off' state
   }
   // 'begun' state does not change -- pins retain prior modes
@@ -259,16 +257,19 @@ void LPD8806RGBW_DBL::show(void) {
     while(i--){
 		whitePart = (ptr[0] < ptr[1] && ptr[0] < ptr[2]) ? ptr[0] : (ptr[1] < ptr[2]) ? ptr[1] : ptr[2];
 
-		writeOut(whitePart);
-		writeOut(ptr[0] - (whitePart & ~(0x80)));
-		writeOut(ptr[2] - (whitePart & ~(0x80)));
-		writeOut(ptr[1] - (whitePart & ~(0x80)));
-		writeOut(0x80);
-		writeOut(0x80);
+		for(uint8_t j = 0; j < 2; j++)
+		{
+			writeOut(whitePart);
+			writeOut(ptr[0] - (whitePart & ~(0x80)));
+			writeOut(ptr[2] - (whitePart & ~(0x80)));
+			writeOut(ptr[1] - (whitePart & ~(0x80)));
+			writeOut(0x80);
+			writeOut(0x80);
+		}
 
 		ptr += 3;
 	} 
-	i = numLatchBytes;
+	i = latchBytes;
 	while(i--) writeOut(0x00);
 }
 

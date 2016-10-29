@@ -34,8 +34,7 @@ class LPD8806RGBW_DBL {
 
   uint16_t
     numLEDs,    // Number of RGB LEDs in strip
-    numBytes,   // Size of 'pixels' buffer below
-	numLatchBytes; // Number of needed latch bytes
+    latchBytes; // Number of latch bytes
   uint8_t
     *pixels,    // Holds LED color values (3 bytes each)
     clkpin    , datapin;     // Clock & data pin numbers
