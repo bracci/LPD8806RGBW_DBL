@@ -129,7 +129,7 @@ LPD8806RGBW_DBL::LPD8806RGBW_DBL(uint16_t n, uint8_t dpin, uint8_t cpin) {
 // command.  If using this constructor, MUST follow up with updateLength()
 // and updatePins() to establish the strip length and output pins!
 LPD8806RGBW_DBL::LPD8806RGBW_DBL(void) {
-  numLEDs = latchBytes = 0;
+  numLEDs = numLatchBytes = 0;
   pixels  = NULL;
   begun   = false;
   updatePins(); // Must assume hardware SPI until pins are set
@@ -237,6 +237,7 @@ void LPD8806RGBW_DBL::updateLength(uint16_t n) {
   latchBytes = (n * 2 * 2 + 31) / 32;
   if((pixels = (uint8_t *)malloc(dataBytes))) { // Alloc new data
     numLEDs  = n;
+	numLatchBytes = latchBytes;
     memset( pixels           , 0x80, dataBytes);  // Init to RGB 'off' state
   }
   // 'begun' state does not change -- pins retain prior modes
@@ -249,6 +250,7 @@ uint16_t LPD8806RGBW_DBL::numPixels(void) {
 void LPD8806RGBW_DBL::show(void) {
   uint8_t  *ptr = pixels;
   uint16_t i    = numLEDs;
+  uint8_t j     = 0;
   uint8_t whitePart;
 
   // This doesn't need to distinguish among individual pixel color
@@ -257,7 +259,8 @@ void LPD8806RGBW_DBL::show(void) {
     while(i--){
 		whitePart = (ptr[0] < ptr[1] && ptr[0] < ptr[2]) ? ptr[0] : (ptr[1] < ptr[2]) ? ptr[1] : ptr[2];
 
-		for(uint8_t j = 0; j < 2; j++)
+		j = 2;
+		while(j--)
 		{
 			writeOut(whitePart);
 			writeOut(ptr[0] - (whitePart & ~(0x80)));
@@ -269,7 +272,7 @@ void LPD8806RGBW_DBL::show(void) {
 
 		ptr += 3;
 	} 
-	i = latchBytes;
+	i = numLatchBytes;
 	while(i--) writeOut(0x00);
 }
 

@@ -23,7 +23,7 @@ class LPD8806RGBW_DBL {
     updatePins(uint8_t dpin, uint8_t cpin), // Change pins, configurable
     updatePins(void),                       // Change pins, hardware SPI
     updateLength(uint16_t n),               // Change strip length
-	writeOut(uint8_t colorContent);
+    writeOut(uint8_t colorContent);
   uint16_t
     numPixels(void);
   uint32_t
@@ -34,7 +34,7 @@ class LPD8806RGBW_DBL {
 
   uint16_t
     numLEDs,    // Number of RGB LEDs in strip
-    latchBytes; // Number of latch bytes
+    numLatchBytes; // Number of latch bytes
   uint8_t
     *pixels,    // Holds LED color values (3 bytes each)
     clkpin    , datapin;     // Clock & data pin numbers
